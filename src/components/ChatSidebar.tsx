@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Bot, MessageSquare, Settings, Download, RotateCcw, LogOut, Menu, Search, Plus, FolderPlus, History } from 'lucide-react';
+import { Bot, MessageSquare, Settings, RotateCcw, LogOut, Menu, Search, Plus, FolderPlus, History } from 'lucide-react';
 import { FolderItem } from './FolderItem';
 import { useConversationManager } from '../hooks/useConversationManager';
 import { ChatMessage } from '../types/chat';
@@ -9,7 +9,8 @@ interface ChatSidebarProps {
   onExportChat: () => void;
   messagesCount: number;
   messages: ChatMessage[];
-  onLoadConversation: (messages: ChatMessage[]) => void;
+  currentConversationId: string | null;
+  onLoadConversation: (messages: ChatMessage[], conversationId?: string) => void;
 }
 
 export const ChatSidebar: React.FC<ChatSidebarProps> = ({
@@ -17,6 +18,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
   onExportChat,
   messagesCount,
   messages,
+  currentConversationId,
   onLoadConversation
 }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -27,7 +29,6 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
 
   const {
     folders,
-    currentConversationId,
     searchQuery,
     setSearchQuery,
     createNewConversation,
@@ -39,8 +40,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
     deleteFolder,
     toggleFolder,
     moveConversationToFolder,
-    getConversationsByFolder,
-    getCurrentConversation
+    getConversationsByFolder
   } = useConversationManager();
 
   // Detecta se é mobile e define estado inicial
@@ -49,7 +49,6 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
       const mobile = window.innerWidth < 768;
       setIsMobile(mobile);
       
-      // Se for mobile e é a primeira vez (ou mudou para mobile), colapsar
       if (mobile) {
         setIsCollapsed(true);
       }
@@ -60,12 +59,20 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
     return () => window.removeEventListener('resize', checkIsMobile);
   }, []);
 
-  // Update current conversation when messages change
+  // Save current conversation when messages change
   useEffect(() => {
-    if (currentConversationId && messages.length > 0) {
-      updateConversation(currentConversationId, messages);
+    if (messages.length > 0) {
+      const userMessages = messages.filter(msg => msg.role !== 'system');
+      if (userMessages.length > 0) {
+        if (currentConversationId) {
+          updateConversation(currentConversationId, messages);
+        } else {
+          // Create new conversation if none exists
+          createNewConversation(userMessages[0]);
+        }
+      }
     }
-  }, [messages, currentConversationId, updateConversation]);
+  }, [messages, currentConversationId, updateConversation, createNewConversation]);
 
   const handleNewConversation = () => {
     onClearChat();
@@ -74,7 +81,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
 
   const handleSelectConversation = (conversationId: string) => {
     const conversationMessages = loadConversation(conversationId);
-    onLoadConversation(conversationMessages);
+    onLoadConversation(conversationMessages, conversationId);
     setActiveTab('chat');
   };
 
@@ -109,7 +116,6 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
             )}
           </div>
           
-          {/* Botão de toggle na mesma linha quando expandido */}
           {!isCollapsed && (
             <button
               onClick={() => setIsCollapsed(true)}
@@ -121,7 +127,6 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
           )}
         </div>
         
-        {/* Botão para expandir quando collapsed */}
         {isCollapsed && (
           <button
             onClick={() => setIsCollapsed(false)}
@@ -258,8 +263,6 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
 
       {/* Bottom Actions */}
       <div className="p-4 border-t border-slate-700 space-y-2 flex-shrink-0">
-        
-        
         <button
           onClick={onClearChat}
           disabled={messagesCount === 0}

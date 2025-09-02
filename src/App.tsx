@@ -9,6 +9,7 @@ function App() {
     isLoading,
     error,
     totalTokens,
+    currentConversationId,
     sendMessage,
     clearConversation,
     loadConversation,
@@ -23,6 +24,7 @@ function App() {
         onExportChat={exportConversation}
         messagesCount={messages.filter(msg => msg.role !== 'system').length}
         messages={messages}
+        currentConversationId={currentConversationId}
         onLoadConversation={loadConversation}
       />
       
