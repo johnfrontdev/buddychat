@@ -6,6 +6,22 @@ export interface ChatMessage {
   tokens?: number;
 }
 
+export interface Conversation {
+  id: string;
+  title: string;
+  messages: ChatMessage[];
+  lastActivity: Date;
+  folderId?: string;
+  createdAt: Date;
+}
+
+export interface Folder {
+  id: string;
+  name: string;
+  isExpanded: boolean;
+  createdAt: Date;
+}
+
 export interface ChatResponse {
   id: string;
   object: string;
