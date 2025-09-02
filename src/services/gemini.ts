@@ -33,7 +33,7 @@ class GeminiService {
   private siteName: string;
 
   constructor() {
-    this.apiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
+    this.apiKey = import.meta.env.VITE_GEMINI_API_KEY || 'AIzaSyDSn8pRCE8NHbaJ6faDf-XJ9vgirmBbzRo';
     this.model = import.meta.env.VITE_GEMINI_MODEL || 'gemini-1.5-flash';
     this.systemMessage = this.getJohnPersonality();
     this.siteUrl = import.meta.env.VITE_SITE_URL || '';
