@@ -1,12 +1,19 @@
 import { useState, useCallback } from 'react';
 import { ChatMessage } from '../types/chat';
 import { openaiService } from '../services/gemini';
+import { useConversationManager } from './useConversationManager';
 
 export const useChat = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [totalTokens, setTotalTokens] = useState(0);
+  
+  const {
+    currentConversationId,
+    createNewConversation,
+    updateConversation
+  } = useConversationManager();
 
   const sendMessage = useCallback(async (input: string) => {
     if (!input.trim() || isLoading) return;
@@ -22,12 +29,25 @@ export const useChat = () => {
         timestamp: new Date()
       };
 
-      setMessages(prev => [...prev, userMessage]);
+      const updatedMessages = [...messages, userMessage];
+      setMessages(updatedMessages);
 
-      const { message: assistantMessage, usage } = await openaiService.sendMessage(messages, input);
+      // Create new conversation if none exists
+      let conversationId = currentConversationId;
+      if (!conversationId) {
+        conversationId = createNewConversation(userMessage);
+      }
+
+      const { message: assistantMessage, usage } = await openaiService.sendMessage(updatedMessages, input);
       
-      setMessages(prev => [...prev, assistantMessage]);
+      const finalMessages = [...updatedMessages, assistantMessage];
+      setMessages(finalMessages);
       setTotalTokens(prev => prev + usage.total_tokens);
+
+      // Update conversation in storage
+      if (conversationId) {
+        updateConversation(conversationId, finalMessages);
+      }
 
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred.';
@@ -35,12 +55,20 @@ export const useChat = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [messages, isLoading]);
+  }, [messages, isLoading, currentConversationId, createNewConversation, updateConversation]);
 
   const clearConversation = useCallback(() => {
     setMessages([]);
     setError(null);
     setTotalTokens(0);
+  }, []);
+
+  const loadConversation = useCallback((conversationMessages: ChatMessage[]) => {
+    setMessages(conversationMessages);
+    setError(null);
+    // Calculate total tokens from loaded messages
+    const tokens = conversationMessages.reduce((sum, msg) => sum + (msg.tokens || 0), 0);
+    setTotalTokens(tokens);
   }, []);
 
   const exportConversation = useCallback(() => {
@@ -72,6 +100,7 @@ export const useChat = () => {
     totalTokens,
     sendMessage,
     clearConversation,
+    loadConversation,
     exportConversation,
     isConfigured: openaiService.isConfigured()
   };

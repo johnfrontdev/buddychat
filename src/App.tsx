@@ -11,6 +11,7 @@ function App() {
     totalTokens,
     sendMessage,
     clearConversation,
+    loadConversation,
     exportConversation,
     isConfigured
   } = useChat();
@@ -21,6 +22,8 @@ function App() {
         onClearChat={clearConversation}
         onExportChat={exportConversation}
         messagesCount={messages.filter(msg => msg.role !== 'system').length}
+        messages={messages}
+        onLoadConversation={loadConversation}
       />
       
       <ChatMain
